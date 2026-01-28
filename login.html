@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+    <title>BoralancesBrowser - Giriş</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #12161f;
+            --bg-tertiary: #1a1f2e;
+            --neon-cyan: #00ffcc;
+            --neon-blue: #00ccff;
+            --tor-purple: #a855f7;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a8b8;
+            --border-color: #2a3142;
+            --glow-cyan: 0 0 20px rgba(0, 255, 204, 0.4);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            margin-bottom: 20px;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo svg {
+            filter: drop-shadow(var(--glow-cyan));
+        }
+
+        .logo-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .logo-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .login-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-blue) 100%);
+            border-color: var(--neon-cyan);
+            color: var(--bg-primary);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .tab-btn:hover:not(.active) {
+            border-color: var(--neon-cyan);
+        }
+
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-blue) 100%);
+            border: none;
+            color: var(--bg-primary);
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            box-shadow: var(--glow-cyan);
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .divider span {
+            padding: 0 12px;
+        }
+
+        .google-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .google-btn:hover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .google-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            color: #ff3b30;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            color: var(--neon-cyan);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .mode-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-badge.tor {
+            border-color: var(--tor-purple);
+            color: var(--tor-purple);
+        }
+
+        .tor-warning {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: var(--tor-purple);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .tor-warning.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="mode-badge" id="modeBadge">Normal Mod</div>
+
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <circle cx="40" cy="40" r="37" stroke="url(#logo-gradient)" stroke-width="2"/>
+                    <path d="M40 15L50 40L40 65L30 40Z" fill="url(#logo-gradient)"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="80" y2="80">
+                            <stop offset="0%" stop-color="#00ffcc"/>
+                            <stop offset="100%" stop-color="#00ccff"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="logo-title">BoralancesBrowser</h1>
+            <p class="logo-subtitle">Güvenli ve Anonim Tarama</p>
+        </div>
+
+        <div class="login-box">
+            <div class="tor-warning" id="torWarning">
+                ⚠️ Tor modunda Google ile giriş devre dışıdır. Lütfen yerel hesap kullanın.
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="login">Giriş Yap</button>
+                <button class="tab-btn" data-tab="register">Kayıt Ol</button>
+            </div>
+
+            <!-- Login Form -->
+            <div class="form-content active" id="loginForm">
+                <form id="loginLocalForm">
+                    <div class="form-group">
+                        <label class="form-label">Kullanıcı Adı</label>
+                        <input type="text" class="form-input" id="loginUsername" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Şifre</label>
+                        <input type="password" class="form-input" id="loginPassword" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="submit-btn" id="loginBtn">Giriş Yap</button>
+                </form>
+
+                <div class="divider"><span>veya</span></div>
+
+                <button class="google-btn" id="googleLoginBtn">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+                        <path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.59.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                    </svg>
+                    Google ile Giriş Yap
+                </button>
+            </div>
+
+            <!-- Register Form -->
+            <div class="form-content" id="registerForm">
+                <form id="registerLocalForm">
+                    <div class="form-group">
+                        <label class="form-label">Kullanıcı Adı</label>
+                        <input type="text" class="form-input" id="registerUsername" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">E-posta</label>
+                        <input type="email" class="form-input" id="registerEmail" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Şifre</label>
+                        <input type="password" class="form-input" id="registerPassword" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Şifre Tekrar</label>
+                        <input type="password" class="form-input" id="registerPasswordConfirm" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="submit-btn" id="registerBtn">Kayıt Ol</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const torWarning = document.getElementById('torWarning');
+        const modeBadge = document.getElementById('modeBadge');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+
+        let currentMode = 'normal';
+
+        // Initialize
+        async function init() {
+            currentMode = await window.electronAPI.getMode();
+            modeBadge.textContent = currentMode === 'tor' ? 'Tor Mod' : 'Normal Mod';
+            modeBadge.classList.toggle('tor', currentMode === 'tor');
+
+            // Disable Google login in Tor mode
+            if (currentMode === 'tor') {
+                googleLoginBtn.disabled = true;
+                torWarning.classList.add('show');
+            }
+        }
+
+        // Tab switching
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                
+                tabButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                loginForm.classList.toggle('active', tab === 'login');
+                registerForm.classList.toggle('active', tab === 'register');
+                
+                hideMessages();
+            });
+        });
+
+        // Login form
+        document.getElementById('loginLocalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showError('Lütfen tüm alanları doldurun');
+                return;
+            }
+            
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Giriş Yapılıyor...';
+            
+            try {
+                const result = await window.electronAPI.auth.loginLocal(username, password);
+                
+                if (result.success) {
+                    showSuccess('Giriş başarılı! Yönlendiriliyorsunuz...');
+                    // Main window will open automatically via IPC
+                } else {
+                    showError(result.error);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Giriş Yap';
+                }
+            } catch (error) {
+                showError('Giriş hatası: ' + error.message);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Giriş Yap';
+            }
+        });
+
+        // Google login
+        googleLoginBtn.addEventListener('click', async () => {
+            if (currentMode === 'tor') {
+                showError('Tor modunda Google ile giriş yapılamaz');
+                return;
+            }
+
+            googleLoginBtn.disabled = true;
+            googleLoginBtn.textContent = 'Google ile bağlanılıyor...';
+            
+            try {
+                const result = await window.electronAPI.auth.loginGoogle();
+                
+                if (result.success) {
+                    showSuccess('Google girişi başarılı!');
+                    // Main window will open automatically
+                } else {
+                    showError(result.error);
+                    googleLoginBtn.disabled = false;
+                    googleLoginBtn.innerHTML = '<svg>...</svg> Google ile Giriş Yap';
+                }
+            } catch (error) {
+                showError('Google giriş hatası: ' + error.message);
+                googleLoginBtn.disabled = false;
+                googleLoginBtn.innerHTML = '<svg>...</svg> Google ile Giriş Yap';
+            }
+        });
+
+        // Register form
+        document.getElementById('registerLocalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+            
+            if (!username || !email || !password || !passwordConfirm) {
+                showError('Lütfen tüm alanları doldurun');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showError('Şifreler eşleşmiyor');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('Şifre en az 6 karakter olmalıdır');
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Kayıt Ediliyor...';
+            
+            try {
+                const result = await window.electronAPI.auth.register(username, password, email);
+                
+                if (result.success) {
+                    showSuccess('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
+                    setTimeout(() => {
+                        tabButtons[0].click(); // Switch to login tab
+                        document.getElementById('loginUsername').value = username;
+                    }, 1500);
+                } else {
+                    showError(result.error);
+                }
+                
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Kayıt Ol';
+            } catch (error) {
+                showError('Kayıt hatası: ' + error.message);
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Kayıt Ol';
+            }
+        });
+
+        function showError(message) {
+            hideMessages();
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            hideMessages();
+            successMessage.textContent = message;
+            successMessage.classList.add('show');
+        }
+
+        function hideMessages() {
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

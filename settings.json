@@ -1,0 +1,19 @@
+{
+  "mode": "normal",
+  "searchEngines": {
+    "normal": {
+      "name": "Google",
+      "url": "https://www.google.com/search?q=%s",
+      "homepage": "https://www.google.com"
+    },
+    "tor": {
+      "name": "DuckDuckGo Onion",
+      "url": "http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/?q=%s",
+      "homepage": "http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion"
+    }
+  },
+  "windowBounds": {
+    "width": 1536,
+    "height": 816
+  }
+}

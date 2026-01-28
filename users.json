@@ -1,0 +1,89 @@
+{
+  "users": [
+    {
+      "id": "1769625274198",
+      "username": "Meraba",
+      "email": "Boranil400@gmail.com",
+      "password": "$2b$10$QkhfeTYHAS.NrocrREg4tOgsWHLsT2mLPwnu6mPemO6n1VYUzJU2e",
+      "createdAt": "2026-01-28T18:34:34.198Z",
+      "type": "local"
+    },
+    {
+      "id": "1769625722929",
+      "username": "Merabaa",
+      "email": "yok@yok.com",
+      "password": "$2b$10$s8FDIwLW/9yWvYgMrMpJquoF04rPqCFEEU/KLQXpkWVxCbnhhDIBG",
+      "createdAt": "2026-01-28T18:42:02.929Z",
+      "type": "local"
+    },
+    {
+      "id": "google_1769626525850",
+      "username": "Google User",
+      "email": "user@gmail.com",
+      "type": "google",
+      "createdAt": "2026-01-28T18:55:25.851Z"
+    }
+  ],
+  "sessions": {
+    "1769625281527cviv1lisp": {
+      "userId": "1769625274198",
+      "createdAt": "2026-01-28T18:34:41.527Z",
+      "expiresAt": "2026-01-29T18:34:41.527Z"
+    },
+    "17696252966268w982s5nk": {
+      "userId": "1769625274198",
+      "createdAt": "2026-01-28T18:34:56.626Z",
+      "expiresAt": "2026-01-29T18:34:56.626Z"
+    },
+    "1769625314027jcxifcozp": {
+      "userId": "1769625274198",
+      "createdAt": "2026-01-28T18:35:14.027Z",
+      "expiresAt": "2026-01-29T18:35:14.028Z"
+    },
+    "1769625360320jfgfhhpju": {
+      "userId": "1769625274198",
+      "createdAt": "2026-01-28T18:36:00.320Z",
+      "expiresAt": "2026-01-29T18:36:00.320Z"
+    },
+    "1769625374013lx3henyzs": {
+      "userId": "1769625274198",
+      "createdAt": "2026-01-28T18:36:14.013Z",
+      "expiresAt": "2026-01-29T18:36:14.013Z"
+    },
+    "1769625731452oirr0rsks": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T18:42:11.452Z",
+      "expiresAt": "2026-01-29T18:42:11.452Z"
+    },
+    "1769625887087ofoza2i9x": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T18:44:47.088Z",
+      "expiresAt": "2026-01-29T18:44:47.090Z"
+    },
+    "1769625912028yu5kib6zx": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T18:45:12.028Z",
+      "expiresAt": "2026-01-29T18:45:12.029Z"
+    },
+    "1769626446681omnptxf57": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T18:54:06.681Z",
+      "expiresAt": "2026-01-29T18:54:06.682Z"
+    },
+    "1769626525885798i23lfg": {
+      "userId": "google_1769626525850",
+      "createdAt": "2026-01-28T18:55:25.885Z",
+      "expiresAt": "2026-01-29T18:55:25.885Z"
+    },
+    "1769626575063et757kmnx": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T18:56:15.063Z",
+      "expiresAt": "2026-01-29T18:56:15.063Z"
+    },
+    "1769627059598li3xd6dmd": {
+      "userId": "1769625722929",
+      "createdAt": "2026-01-28T19:04:19.598Z",
+      "expiresAt": "2026-01-29T19:04:19.598Z"
+    }
+  }
+}
