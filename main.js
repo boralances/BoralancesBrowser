@@ -1,20 +1,46 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 const AuthManager = require('./auth');
+
+
+
+// DOSYA YOLU AYARI
+const torPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'tor-files', 'tor.exe')
+  : path.join(__dirname, 'bin', 'tor', 'tor.exe');
+
+// TOR'U BAŞLATMA ÖRNEĞİ (Kendi kodunla kıyasla)
+function startTor() {
+  const torProcess = spawn(torPath, ['-f', path.join(path.dirname(torPath), 'torrc')], {
+    detached: false
+  });
+
+  torProcess.stdout.on('data', (data) => {
+    console.log(`Tor: ${data}`);
+  });
+}
 
 // Initialize auth manager
 const authManager = new AuthManager();
 
 // Settings file path
-const settingsPath = path.join(__dirname, 'settings.json');
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
 // Global state
 let loginWindow = null;
 let mainWindow = null;
 let currentSession = null;
+let torProcess = null;
+let torReady = false;
 
-// Load settings or create default
+// ===== SETTINGS MANAGEMENT (MUST BE FIRST) =====
+
+/**
+ * Load settings or create default
+ * @returns {Object}
+ */
 function loadSettings() {
   try {
     if (fs.existsSync(settingsPath)) {
@@ -44,7 +70,10 @@ function loadSettings() {
   };
 }
 
-// Save settings
+/**
+ * Save settings to disk
+ * @param {Object} settings
+ */
 function saveSettings(settings) {
   try {
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
@@ -53,36 +82,133 @@ function saveSettings(settings) {
   }
 }
 
-// Global settings
+// Global settings - LOAD FIRST
 let settings = loadSettings();
 
-// Apply Tor mode with kill-switch BEFORE app.ready
+// ===== CRITICAL: APPLY TOR PROXY BEFORE APP READY =====
 if (settings.mode === 'tor') {
-  console.log('=== TOR MODE ENABLED ===');
+  console.log('=== TOR MODE ENABLED (PRE-BOOT) ===');
   console.log('Applying Tor proxy: socks5://127.0.0.1:9050');
   
-  // Set SOCKS5 proxy for Tor
+  // Set proxy before app is ready
   app.commandLine.appendSwitch('proxy-server', 'socks5://127.0.0.1:9050');
-  
-  // DNS over proxy (prevent DNS leaks)
   app.commandLine.appendSwitch('host-resolver-rules', 'MAP * ~NOTFOUND , EXCLUDE 127.0.0.1');
   
-  // Disable WebRTC (prevent IP leaks)
-  app.commandLine.appendSwitch('disable-webrtc-encryption');
-  app.commandLine.appendSwitch('enforce-webrtc-ip-permission-check');
-  
-  // Disable direct UDP (prevent protocol leaks)
+  // Disable WebRTC
   app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns');
   
-  // Force dark mode for privacy
-  app.commandLine.appendSwitch('force-dark-mode');
-  
-  console.log('Tor kill-switch activated: WebRTC disabled, DNS via proxy, UDP blocked');
+  console.log('✓ Tor proxy configured at startup');
 } else {
   console.log('=== NORMAL MODE ENABLED ===');
 }
 
-// Create login window
+// ===== TOR MANAGEMENT =====
+
+/**
+ * Start embedded Tor process
+ * @returns {Promise<void>}
+ */
+async function startTor() {
+  return new Promise((resolve, reject) => {
+    // BURADAKİ torPath TANIMINI SİLDİK, ÜSTTEKİ GLOBAL torPath'İ KULLANIYORUZ
+    
+    // GeoIP dosyaları için de dinamik yol tanımı:
+    const torDir = path.dirname(torPath);
+    const geoIpPath = path.join(torDir, 'geoip');
+    const geoIPv6Path = path.join(torDir, 'geoip6');
+    
+    const torDataDir = path.join(app.getPath('userData'), 'tor-data');
+
+    if (!fs.existsSync(torPath)) {
+      return reject(new Error(`Tor bulunamadı: ${torPath}`));
+    }
+
+    if (!fs.existsSync(torDataDir)) {
+      fs.mkdirSync(torDataDir, { recursive: true });
+    }
+
+    // Spawn Tor process
+    torProcess = spawn(torPath, [
+      '--SocksPort', '9050',
+      '--DataDirectory', torDataDir,
+      '--GeoIPFile', geoIpPath,
+      '--GeoIPv6File', geoIPv6Path
+    ]);
+
+    // Track startup timeout
+    const startupTimeout = setTimeout(() => {
+      console.error('❌ Tor startup timeout (60s exceeded)');
+      if (torProcess) {
+        torProcess.kill();
+      }
+      reject(new Error('Tor failed to start within 60 seconds'));
+    }, 60000);
+
+    // Listen to Tor stdout for bootstrap progress
+    torProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log('[Tor]', output.trim());
+
+      // Check for bootstrap completion
+      if (output.includes('Bootstrapped 100%')) {
+        clearTimeout(startupTimeout);
+        torReady = true;
+        console.log('===========================================');
+        console.log('✓ Tor is READY! SOCKS proxy: 127.0.0.1:9050');
+        console.log('===========================================');
+        resolve();
+      }
+    });
+
+    // Listen to Tor stderr for errors
+    torProcess.stderr.on('data', (data) => {
+      const error = data.toString();
+      console.error('[Tor Error]', error.trim());
+
+      // Check for port conflict
+      if (error.includes('already in use') || error.includes('bind')) {
+        clearTimeout(startupTimeout);
+        torProcess.kill();
+        reject(new Error('Port 9050 is already in use. Another Tor instance may be running.'));
+      }
+    });
+
+    // Handle Tor process errors
+    torProcess.on('error', (error) => {
+      clearTimeout(startupTimeout);
+      console.error('Failed to start Tor process:', error);
+      reject(error);
+    });
+
+    // Handle unexpected Tor exit
+    torProcess.on('close', (code) => {
+      console.log(`Tor process exited with code ${code}`);
+      torReady = false;
+      if (code !== 0 && code !== null) {
+        clearTimeout(startupTimeout);
+        reject(new Error(`Tor exited unexpectedly with code ${code}`));
+      }
+    });
+  });
+}
+
+/**
+ * Stop Tor process gracefully
+ */
+function stopTor() {
+  if (torProcess) {
+    console.log('Stopping Tor process...');
+    torProcess.kill('SIGTERM');
+    torProcess = null;
+    torReady = false;
+  }
+}
+
+// ===== WINDOW CREATION =====
+
+/**
+ * Create login window
+ */
 function createLoginWindow() {
   loginWindow = new BrowserWindow({
     width: 500,
@@ -109,8 +235,16 @@ function createLoginWindow() {
   });
 }
 
-// Create main browser window
-function createMainWindow() {
+/**
+ * Create main browser window (only after Tor is ready in Tor mode)
+ */
+async function createMainWindow() {
+  // Wait for Tor if in Tor mode
+  if (settings.mode === 'tor' && !torReady) {
+    console.log('⏳ Waiting for Tor to be ready before creating main window...');
+    return;
+  }
+
   const { width, height } = settings.windowBounds;
   
   mainWindow = new BrowserWindow({
@@ -124,21 +258,21 @@ function createMainWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true,
-      // Additional privacy settings for Tor mode
+      enableRemoteModule: false,
       disableBlinkFeatures: settings.mode === 'tor' ? 'WebRTC' : '',
       enableWebSQL: false
     },
     autoHideMenuBar: true,
-    show: false // Don't show until ready
+    show: false
   });
 
-  // Apply additional session-level privacy settings
+  // Additional session-level settings for Tor
   if (settings.mode === 'tor') {
     const ses = mainWindow.webContents.session;
     
-    // Block geolocation
+    // Block WebRTC and geolocation for privacy
     ses.setPermissionRequestHandler((webContents, permission, callback) => {
-      if (permission === 'geolocation' || permission === 'media') {
+      if (['geolocation', 'media', 'mediaKeySystem'].includes(permission)) {
         console.log(`Tor Mode: Blocked permission request for ${permission}`);
         callback(false);
       } else {
@@ -147,9 +281,11 @@ function createMainWindow() {
     });
 
     // Clear storage on startup for privacy
-    ses.clearStorageData({
-      storages: ['cookies', 'localstorage']
+    await ses.clearStorageData({
+      storages: ['cookies', 'localstorage', 'indexdb', 'websql']
     });
+
+    console.log('✓ Session privacy settings applied');
   }
 
   mainWindow.loadFile('index.html');
@@ -157,9 +293,10 @@ function createMainWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    console.log('✓ Main window displayed');
   });
 
-  // Save window bounds
+  // Save window bounds on resize
   mainWindow.on('resize', () => {
     const bounds = mainWindow.getBounds();
     settings.windowBounds = { width: bounds.width, height: bounds.height };
@@ -193,7 +330,7 @@ ipcMain.handle('auth:login-local', async (event, { username, password }) => {
     if (loginWindow) {
       loginWindow.close();
     }
-    createMainWindow();
+    await createMainWindow();
     
     return { success: true, user };
   } catch (error) {
@@ -219,7 +356,7 @@ ipcMain.handle('auth:login-google', async (event) => {
     if (loginWindow) {
       loginWindow.close();
     }
-    createMainWindow();
+    await createMainWindow();
     
     return { success: true, user };
   } catch (error) {
@@ -272,72 +409,92 @@ ipcMain.handle('set-mode', async (event, newMode) => {
     throw new Error('Invalid mode');
   }
   
-  console.log(`Switching mode from ${settings.mode} to ${newMode}`);
+  console.log(`🔄 Switching mode from ${settings.mode} to ${newMode}`);
   
   settings.mode = newMode;
   saveSettings(settings);
   
+  // Stop Tor if switching away from Tor mode
+  if (newMode === 'normal' && torProcess) {
+    stopTor();
+  }
+  
   // Restart app to apply proxy changes
+  console.log('🔄 Restarting application...');
   app.relaunch();
   app.exit(0);
   
   return { success: true, mode: newMode };
 });
 
-// Check Tor connection (only in Tor mode)
+// Check Tor connection status
 ipcMain.handle('check-tor-connection', async () => {
   if (settings.mode !== 'tor') {
     return { success: true, connected: true };
   }
 
-  // Try to connect to Tor check service
-  try {
-    const { net } = require('electron');
-    const request = net.request({
-      method: 'GET',
-      url: 'http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion',
-      session: session.defaultSession
-    });
+  return { 
+    success: true, 
+    connected: torReady,
+    message: torReady ? 'Tor bağlantısı aktif' : 'Tor başlatılıyor...'
+  };
+});
 
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        request.abort();
-        resolve({ 
-          success: false, 
-          connected: false, 
-          error: 'Tor bağlantısı kurulamadı. Tor Browser veya tor.exe çalışıyor mu?' 
-        });
-      }, 10000);
-
-      request.on('response', (response) => {
-        clearTimeout(timeout);
-        resolve({ success: true, connected: response.statusCode < 400 });
-      });
-
-      request.on('error', (error) => {
-        clearTimeout(timeout);
-        resolve({ 
-          success: false, 
-          connected: false, 
-          error: 'Tor proxy erişilemez: ' + error.message 
-        });
-      });
-
-      request.end();
-    });
-  } catch (error) {
-    return { 
-      success: false, 
-      connected: false, 
-      error: error.message 
-    };
-  }
+// Get Tor status
+ipcMain.handle('get-tor-status', async () => {
+  return {
+    isRunning: torProcess !== null,
+    isReady: torReady,
+    mode: settings.mode
+  };
 });
 
 // ===== APP LIFECYCLE =====
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  console.log('==============================================');
+  console.log('🚀 BoralancesBrowser starting...');
+  console.log('📋 Mode:', settings.mode.toUpperCase());
+  console.log('==============================================');
+
+  // Start Tor if in Tor mode
+  if (settings.mode === 'tor') {
+    try {
+      console.log('🔧 Starting Tor process...');
+      await startTor();
+      console.log('✅ Tor is fully operational!');
+    } catch (error) {
+      console.error('❌ Failed to start Tor:', error.message);
+      
+      // Show error dialog
+      const { dialog } = require('electron');
+      const result = await dialog.showMessageBox({
+        type: 'error',
+        title: 'Tor Başlatma Hatası',
+        message: 'Tor başlatılamadı',
+        detail: error.message + '\n\nNormal modda devam etmek ister misiniz?',
+        buttons: ['Normal Modda Devam Et', 'Çıkış'],
+        defaultId: 0,
+        cancelId: 1
+      });
+
+      if (result.response === 0) {
+        // Switch to normal mode and restart
+        console.log('⚠️ Switching to normal mode...');
+        settings.mode = 'normal';
+        saveSettings(settings);
+        app.relaunch();
+        app.exit(0);
+        return;
+      } else {
+        app.quit();
+        return;
+      }
+    }
+  }
+
   // Start with login window
+  console.log('📂 Opening login window...');
   createLoginWindow();
 
   app.on('activate', () => {
@@ -357,9 +514,23 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Handle errors
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+// Cleanup on quit
+app.on('before-quit', () => {
+  console.log('🛑 Application shutting down...');
+  stopTor();
 });
 
-console.log('BoralancesBrowser started in', settings.mode, 'mode');
+app.on('will-quit', () => {
+  stopTor();
+});
+
+// Handle errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled rejection at:', promise, 'reason:', reason);
+});
+
+console.log('✅ Application initialized');

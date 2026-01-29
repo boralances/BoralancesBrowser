@@ -2,12 +2,29 @@
   "name": "boralancesbrowser",
   "version": "1.0.0",
   "description": "Normal + Tor mode gamer browser",
+  "author": "Bora",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.bora.boralances",
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "requireAdministrator" 
+    },
+    "extraResources": [
+      {
+        "from": "bin/tor/", 
+        "to": "tor-files/",
+        "filter": ["**/*"]
+      }
+    ]
   },
   "devDependencies": {
-    "electron": "^40.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.4.0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3"

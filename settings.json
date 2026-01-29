@@ -1,5 +1,5 @@
 {
-  "mode": "tor",
+  "mode": "normal",
   "searchEngines": {
     "normal": {
       "name": "Google",

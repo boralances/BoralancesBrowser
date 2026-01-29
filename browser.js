@@ -2,15 +2,15 @@
 // Real multi-tab system with independent webviews
 
 class BrowserTab {
-    constructor(id, isWelcome = false) {
+    constructor(id, homepage = null) {
         this.id = id;
         this.title = 'Yeni Sekme';
         this.url = '';
-        this.isWelcome = isWelcome;
         this.webview = null;
         this.tabElement = null;
         this.contentElement = null;
         this.history = { canGoBack: false, canGoForward: false };
+        this.homepage = homepage;
     }
 
     createTabElement() {
@@ -36,65 +36,22 @@ class BrowserTab {
         content.className = 'tab-content';
         content.dataset.tabId = this.id;
 
-        if (this.isWelcome) {
-            content.innerHTML = this.getWelcomeHTML();
-        } else {
-            const webview = document.createElement('webview');
-            webview.className = 'webview';
-            webview.setAttribute('partition', 'persist:main');
-            webview.setAttribute('allowpopups', '');
-            content.appendChild(webview);
-            this.webview = webview;
-            this.setupWebviewListeners();
+        const webview = document.createElement('webview');
+        webview.className = 'webview';
+        webview.setAttribute('partition', 'persist:main');
+        webview.setAttribute('allowpopups', '');
+        
+        // Direkt homepage'i yükle
+        if (this.homepage) {
+            webview.src = this.homepage;
         }
+        
+        content.appendChild(webview);
+        this.webview = webview;
+        this.setupWebviewListeners();
 
         this.contentElement = content;
         return content;
-    }
-
-    getWelcomeHTML() {
-        return `
-            <div class="welcome-screen">
-                <div class="welcome-content">
-                    <div class="welcome-logo">
-                        <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-                            <circle cx="60" cy="60" r="55" stroke="url(#welcome-gradient)" stroke-width="3"/>
-                            <path d="M60 20L75 60L60 100L45 60Z" fill="url(#welcome-gradient)"/>
-                            <defs>
-                                <linearGradient id="welcome-gradient" x1="0" y1="0" x2="120" y2="120">
-                                    <stop offset="0%" stop-color="#00ffcc"/>
-                                    <stop offset="100%" stop-color="#00ccff"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-                    <h1 class="welcome-title">BoralancesBrowser</h1>
-                    <p class="welcome-subtitle" id="welcomeSubtitle">Gaming Edition - Tor & Normal Mod</p>
-                    
-                    <div class="quick-links">
-                        <h3>Hızlı Erişim</h3>
-                        <div class="quick-links-grid">
-                            <a href="#" class="quick-link" data-url="https://www.google.com">
-                                <div class="quick-link-icon">G</div>
-                                <span>Google</span>
-                            </a>
-                            <a href="#" class="quick-link" data-url="https://www.youtube.com">
-                                <div class="quick-link-icon">Y</div>
-                                <span>YouTube</span>
-                            </a>
-                            <a href="#" class="quick-link" data-url="https://www.github.com">
-                                <div class="quick-link-icon">GH</div>
-                                <span>GitHub</span>
-                            </a>
-                            <a href="#" class="quick-link" data-url="https://www.reddit.com">
-                                <div class="quick-link-icon">R</div>
-                                <span>Reddit</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     setupWebviewListeners() {
@@ -141,19 +98,7 @@ class BrowserTab {
     }
 
     loadURL(url) {
-        if (!this.webview) {
-            // Convert welcome screen to webview
-            this.isWelcome = false;
-            this.contentElement.innerHTML = '';
-            const webview = document.createElement('webview');
-            webview.className = 'webview';
-            webview.setAttribute('partition', 'persist:main');
-            webview.setAttribute('allowpopups', '');
-            this.contentElement.appendChild(webview);
-            this.webview = webview;
-            this.setupWebviewListeners();
-        }
-
+        if (!this.webview) return;
         this.url = url;
         this.webview.loadURL(url);
     }
@@ -235,21 +180,35 @@ class Browser {
     async init() {
         await this.loadSettings();
         this.updateModeUI(false);
+        this.updateSearchPlaceholder();
         this.setupEventListeners();
         await this.checkTorConnection();
-        this.createTab(true); // Create first tab with welcome screen
+        
+        // İlk sekmeyi homepage ile oluştur
+        const homepage = this.searchEngines[this.currentMode].homepage;
+        console.log('Opening homepage:', homepage);
+        this.createTab(homepage);
     }
 
     async loadSettings() {
         this.currentMode = await window.electronAPI.getMode();
         this.searchEngines = await window.electronAPI.getSearchEngines();
+        console.log('Current mode:', this.currentMode);
+        console.log('Search engines:', this.searchEngines);
+    }
+
+    updateSearchPlaceholder() {
+        const currentEngine = this.searchEngines[this.currentMode];
+        if (currentEngine && this.searchInput) {
+            this.searchInput.placeholder = `${currentEngine.name}'da ara veya URL girin...`;
+        }
     }
 
     async checkTorConnection() {
         if (this.currentMode === 'tor') {
             const result = await window.electronAPI.checkTorConnection();
             if (!result.success || !result.connected) {
-                this.showTorError(result.error);
+                this.showTorError(result.error || 'Tor bağlantısı kurulamadı');
             }
         }
     }
@@ -287,8 +246,11 @@ class Browser {
         this.refreshBtn.addEventListener('click', () => this.reload());
         this.homeBtn.addEventListener('click', () => this.goHome());
 
-        // New tab
-        this.newTabBtn.addEventListener('click', () => this.createTab(true));
+        // New tab - yeni sekme de homepage ile açılsın
+        this.newTabBtn.addEventListener('click', () => {
+            const homepage = this.searchEngines[this.currentMode].homepage;
+            this.createTab(homepage);
+        });
 
         // Mode toggle
         this.modeToggle.addEventListener('click', () => this.switchMode());
@@ -297,15 +259,21 @@ class Browser {
         this.logoutBtn.addEventListener('click', () => this.logout());
 
         // Retry Tor connection
-        document.getElementById('retryTorBtn').addEventListener('click', async () => {
+        document.getElementById('retryTorBtn')?.addEventListener('click', async () => {
             this.hideTorError();
             await this.checkTorConnection();
         });
     }
 
-    createTab(isWelcome = false) {
+    createTab(url = null) {
         const id = this.nextTabId++;
-        const tab = new BrowserTab(id, isWelcome);
+        
+        // Eğer URL verilmemişse, homepage kullan
+        if (!url) {
+            url = this.searchEngines[this.currentMode].homepage;
+        }
+        
+        const tab = new BrowserTab(id, url);
         
         // Create and add tab element
         const tabElement = tab.createTabElement();
@@ -328,20 +296,6 @@ class Browser {
             e.stopPropagation();
             this.closeTab(id);
         });
-
-        // Setup welcome screen links if applicable
-        if (isWelcome) {
-            setTimeout(() => {
-                const quickLinks = contentElement.querySelectorAll('.quick-link');
-                quickLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const url = link.getAttribute('data-url');
-                        this.loadURL(url, id);
-                    });
-                });
-            }, 100);
-        }
         
         this.tabs.set(id, tab);
         this.switchTab(id);
@@ -417,11 +371,19 @@ class Browser {
         if (query.startsWith('http://') || query.startsWith('https://')) {
             url = query;
         } else if (query.includes('.') && !query.includes(' ')) {
-            url = 'https://' + query;
+            // Check if it's .onion for Tor mode
+            if (query.endsWith('.onion')) {
+                url = 'http://' + query;
+            } else {
+                url = 'https://' + query;
+            }
         } else {
             // It's a search query - use appropriate search engine
             const engine = this.searchEngines[this.currentMode];
-            url = engine.url.replace('%s', encodeURIComponent(query));
+            if (engine && engine.url) {
+                url = engine.url.replace('%s', encodeURIComponent(query));
+                console.log('Search URL:', url);
+            }
         }
 
         this.loadURL(url);
@@ -453,8 +415,9 @@ class Browser {
 
     goHome() {
         const tab = this.tabs.get(this.activeTabId);
-        if (tab) {
+        if (tab && this.searchEngines) {
             const homepage = this.searchEngines[this.currentMode].homepage;
+            console.log('Going home:', homepage);
             tab.loadURL(homepage);
         }
     }
@@ -486,6 +449,8 @@ class Browser {
             this.statusSecurity.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Hazır';
         } else if (url.startsWith('https://')) {
             this.statusSecurity.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Güvenli';
+        } else if (url.includes('.onion')) {
+            this.statusSecurity.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11"/></svg> Tor Anonim';
         } else {
             this.statusSecurity.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Güvensiz';
         }
